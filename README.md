@@ -12,32 +12,38 @@ __      _____  _ __| | _____ _ __ _ __   ___   ___ | |
                                  |_|                 
 ```
 
-Workerpool is a excellent worker thread dispatcher powered by C language.<br> 
-It provides thread pool and task queue. <br>
-There is no any global variable. 
+Workerpool is a excellent worker thread dispatcher powered by `C` language.<br> 
+It provides controllable thread pool with unlimited task queue. <br>
+
+## Features
+
+- Easy to use.
+- Completely controllable. 
+- Unlimited task queue.
+- No global variables. 
 
 ## Usage
 
 ### Get start
 
-Workerpool use `GNU make` for project management.
+Workerpool use `GNU make` for project management with `clang` as default compiler.
 
-- Compile, build and test
+Compile, build and test.<br>
 ```bash
 $ make 
 ```
 
-- Install to system
+Install to system.<br>
 ```bash
 $ make install
 ```
 
-- Cleanup build output
+Clean up build output.<br>
 ```bash
 $ make clean
 ```
 
-- Uninstall from system
+Uninstall from system.<br>
 ```bash
 $ make uninstall
 ```
@@ -46,6 +52,7 @@ $ make uninstall
 
 1. Install to your system or copy the files under the `src` directory to your project.
 2. Include the header file `workerpool.h`.
+3. Compile with `-lworkerpool` flag by using installed library.
 
 ### Types
 

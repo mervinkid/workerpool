@@ -50,7 +50,8 @@ typedef struct taskqueue_s {
     int size;
 } taskqueue_t; // task queue
 
-// taskqueue functions
+/* taskqueue functions */
+
 taskqueue_t* taskqueue_new();
 void taskqueue_init(taskqueue_t * __restrict);
 int  taskqueue_put(taskqueue_t * __restrict, void (*)(void *), void *);
