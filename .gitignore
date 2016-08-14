@@ -1,8 +1,15 @@
+# OS
 .DS_Store
+
+# IDE
 .vscode
 .vscode/*
+*.xcodeproj
+
+# Build output
 *.o
 *.so
 *.dylib
 *.a
 build/*
+
