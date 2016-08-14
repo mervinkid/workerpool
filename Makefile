@@ -51,7 +51,7 @@ all: workerpool.o taskqueue.o static shared test
 
 # make build output dir
 buildpath:
-	$(shell mkdir build)
+	$(shell mkdir -p $(BUILD_DIR))
 
 # compile worker pool
 workerpool.o: buildpath
@@ -80,9 +80,9 @@ test: test.o workerpool.o taskqueue.o
 
 # install to system
 install: all
-	$(shell mkdir /opt/$(NAME))
-	$(shell mkdir /opt/$(NAME)/lib)
-	$(shell mkdir /opt/$(NAME)/include)
+	$(shell mkdir -p /opt/$(NAME))
+	$(shell mkdir -p /opt/$(NAME)/lib)
+	$(shell mkdir -p /opt/$(NAME)/include)
 	$(shell cp $(BUILD_DIR)/$(BUILD_SHARED) /opt/$(NAME)/lib/)
 	$(shell cp $(BUILD_DIR)/$(BUILD_STATIC) /opt/$(NAME)/lib/)
 	$(shell cp $(SRC_DIR)/workerpool.h /opt/$(NAME)/include/)
