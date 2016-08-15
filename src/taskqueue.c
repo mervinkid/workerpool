@@ -30,6 +30,9 @@ taskqueue_t* taskqueue_new() {
     return (taskqueue_t*)malloc(sizeof(taskqueue_t));
 }
 
+/*
+ * Init queue
+ */
 void taskqueue_init(taskqueue_t* queue) {
 
     if (queue == NULL) {
@@ -41,6 +44,9 @@ void taskqueue_init(taskqueue_t* queue) {
     return;
 }
 
+/*
+ * Put task into queue.
+ */
 int taskqueue_put(taskqueue_t *queue, void (*func)(void*), void *arg) {
     
     if (func == NULL || queue == NULL) {
@@ -73,6 +79,10 @@ int taskqueue_put(taskqueue_t *queue, void (*func)(void*), void *arg) {
     return queue->size;
 }
 
+/*
+ * Take the task from first node and remove the node from queue.
+ * Return 0 if success or -1.
+ */
 int taskqueue_take(taskqueue_t *queue, task_t *task) {
     
     if (queue == NULL || queue->first == NULL || queue->size == 0) {
@@ -94,6 +104,9 @@ int taskqueue_take(taskqueue_t *queue, task_t *task) {
     return 0;
 }
 
+/*
+ * Clear all task from queue.
+ */
 void taskqueue_clear(taskqueue_t *queue) {
     
     if (queue == NULL) {
@@ -111,6 +124,9 @@ void taskqueue_clear(taskqueue_t *queue) {
     queue->size = 0;
 }
 
+/*
+ * Destroy queue.
+ */
 void taskqueue_destroy(taskqueue_t *queue) {
     
     if (queue == NULL) {

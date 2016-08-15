@@ -26,7 +26,7 @@
 
 #include "workerpool.h"
 
-static void *workerpool_workerthread_func(void *);
+static void workerpool_workerthread_func(void *);
 static void workerthread_init(workerthread_t *);
 static void workerthread_join(workerthread_t * __restrict, uint);
 
@@ -37,7 +37,7 @@ workerpool_t* workerpool_new() {
 void workerpool_init(workerpool_t * pool, uint poolsize) {
     
     // Init pool only when pool has not been inited.
-    if (workerpool_status(pool) != POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) != INVALID) {
         return;
     }
 
@@ -65,12 +65,12 @@ void workerpool_init(workerpool_t * pool, uint poolsize) {
     
     // Init worker condition.
     // This condition used for make worker thread manageable.
-    pthread_cond_t *worker_cond = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
-    pthread_cond_init(worker_cond, NULL);
-    pool->poolsafe.worker_notify = worker_cond;
+    pthread_cond_t *worker_notify = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
+    pthread_cond_init(worker_notify, NULL);
+    pool->poolsafe.worker_notify = worker_notify;
     
     // Update pool status.
-    pool->poolsafe.pool_status = POOL_STATUS_STOP;
+    pool->poolsafe.pool_status = STOP;
     
     // Init task queue.
     pool->taskqueue = taskqueue_new();
@@ -83,7 +83,7 @@ void workerpool_init(workerpool_t * pool, uint poolsize) {
 
 void workerpool_destroy(workerpool_t *pool) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) == INVALID) {
         // Pool is invalid.
         return;
     }
@@ -108,7 +108,7 @@ void workerpool_destroy(workerpool_t *pool) {
 
 int workerpool_start(workerpool_t *pool) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) == INVALID) {
         // Pool is invalid.
         return -1;
     }
@@ -117,18 +117,18 @@ int workerpool_start(workerpool_t *pool) {
     pthread_mutex_lock(pool->poolsafe.pool_mutex);
     
     uint pool_status = pool->poolsafe.pool_status;
-    if (pool_status == POOL_STATUS_RUNNING) {
+    if (pool_status == RUNNING) {
         return 0;
     }
     
     // Update pool status
-    pool->poolsafe.pool_status = POOL_STATUS_RUNNING;
+    pool->poolsafe.pool_status = RUNNING;
     
     // Init and start work threads
     pool->worker_threads = (workerthread_t*)malloc(sizeof(workerthread_t) * pool->poolsize);
     for (uint i = 0; i < pool->poolsize; i++) {
         workerthread_init(pool->worker_threads+i);
-        pthread_create((pool->worker_threads+i)->thread, NULL, workerpool_workerthread_func, (void*)pool);
+        pthread_create((pool->worker_threads+i)->thread, NULL, (void*)workerpool_workerthread_func, (void*)pool);
         DEBUG_INFO("[INFO] worker -%10d - start.\n", (int)*(pool->worker_threads+i)->thread);
     }
     
@@ -140,12 +140,12 @@ int workerpool_start(workerpool_t *pool) {
 
 int workerpool_stop(workerpool_t* pool) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) == INVALID) {
         return -1;
     }
     
     uint pool_status = pool->poolsafe.pool_status;
-    if (pool_status == POOL_STATUS_STOP || pool_status == POOL_STATUS_PAUSE) {
+    if (pool_status == STOP || pool_status == PAUSE) {
         return 0;
     }
     
@@ -154,7 +154,7 @@ int workerpool_stop(workerpool_t* pool) {
     
     // Update pool status.
     // Set pool status from RUNNING to STOP.
-    pool->poolsafe.pool_status = POOL_STATUS_STOP;
+    pool->poolsafe.pool_status = STOP;
     
     // Notify workers
     pthread_mutex_lock(pool->poolsafe.worker_notify_mutex);
@@ -174,17 +174,17 @@ int workerpool_stop(workerpool_t* pool) {
 
 int workerpool_pause(workerpool_t *pool) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) == INVALID) {
         return -1;
     }
     
     uint pool_status = pool->poolsafe.pool_status;
     
-    if (pool_status == POOL_STATUS_PAUSE) {
+    if (pool_status == PAUSE) {
         return 0;
     }
     
-    if (pool_status != POOL_STATUS_RUNNING) {
+    if (pool_status != RUNNING) {
         return -1;
     }
     
@@ -193,7 +193,7 @@ int workerpool_pause(workerpool_t *pool) {
     
     // Update pool status.
     // Set pool status from RUNNING to PAUSE.
-    pool->poolsafe.pool_status = POOL_STATUS_PAUSE;
+    pool->poolsafe.pool_status = PAUSE;
     
     // Notify workers.
     pthread_mutex_lock(pool->poolsafe.worker_notify_mutex);
@@ -213,7 +213,7 @@ int workerpool_pause(workerpool_t *pool) {
 
 int workerpool_task_put(workerpool_t *pool, void (*taskfunc)(void*), void *arg) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID || taskfunc == NULL) {
+    if (workerpool_status(pool) == INVALID || taskfunc == NULL) {
         return -1;
     }
     if (taskqueue_put(pool->taskqueue, taskfunc, arg) == -1) {
@@ -232,7 +232,7 @@ int workerpool_task_put(workerpool_t *pool, void (*taskfunc)(void*), void *arg) 
  */
 uint workerpool_poolsize(workerpool_t *pool) {
     
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
+    if (workerpool_status(pool) == INVALID) {
         return 0;
     }
     return pool->poolsize;
@@ -245,7 +245,7 @@ int workerpool_poolsize_update(workerpool_t *pool, uint size) {
     
     uint pool_status = workerpool_status(pool);
     
-    if (pool_status == POOL_STATUS_INVALID) {
+    if (pool_status == INVALID) {
         return -1;
     }
     
@@ -254,11 +254,11 @@ int workerpool_poolsize_update(workerpool_t *pool, uint size) {
         return 0;
     }
     
-    if (pool_status == POOL_STATUS_RUNNING) {
+    if (pool_status == RUNNING) {
         workerpool_pause(pool);
     }
     pool->poolsize = size;
-    if (pool_status == POOL_STATUS_RUNNING) {
+    if (pool_status == RUNNING) {
         workerpool_start(pool);
     }
     return 0;
@@ -267,17 +267,17 @@ int workerpool_poolsize_update(workerpool_t *pool, uint size) {
 /*
  * Return current status of pool
  */
-uint workerpool_status(workerpool_t *pool) {
+pool_status_t workerpool_status(workerpool_t *pool) {
     
     if (pool == NULL) {
-        return POOL_STATUS_INVALID;
+        return INVALID;
     }
-    uint current = pool->poolsafe.pool_status;
-    if (current != POOL_STATUS_INVALID  &&
-        current != POOL_STATUS_RUNNING  &&
-        current != POOL_STATUS_STOP     &&
-        current != POOL_STATUS_PAUSE) {
-        pool->poolsafe.pool_status = POOL_STATUS_INVALID;
+    pool_status_t current = pool->poolsafe.pool_status;
+    if (current != INVALID  &&
+        current != RUNNING  &&
+        current != STOP     &&
+        current != PAUSE) {
+        pool->poolsafe.pool_status = INVALID;
     }
     return pool->poolsafe.pool_status ;
 }
@@ -285,18 +285,18 @@ uint workerpool_status(workerpool_t *pool) {
 /*
  * Worker thread function
  */
-static void *workerpool_workerthread_func(void *ptr) {
+static void workerpool_workerthread_func(void *ptr) {
     
     workerpool_t *pool = (workerpool_t*)ptr;
-    if (workerpool_status(pool) == POOL_STATUS_INVALID) {
-        return NULL;
+    if (workerpool_status(pool) == INVALID) {
+        return;
     }
     // Worker loop
     while (1) {
         
         // If pool have been set to pause,
         // break worker loop and finish current thread immediately.
-        if (pool->poolsafe.pool_status == POOL_STATUS_PAUSE) {
+        if (pool->poolsafe.pool_status == PAUSE) {
             break;
         }
         
@@ -312,7 +312,7 @@ static void *workerpool_workerthread_func(void *ptr) {
             // If pool have been set to stop,
             // break worker loop and finish current thread then task queue is empty.
             pthread_mutex_lock(pool->poolsafe.worker_notify_mutex);
-            if (pool->poolsafe.pool_status == POOL_STATUS_STOP) {
+            if (pool->poolsafe.pool_status == STOP) {
                 pthread_mutex_unlock(pool->poolsafe.worker_notify_mutex);
                 break;
             }
@@ -332,7 +332,7 @@ static void *workerpool_workerthread_func(void *ptr) {
         task_func(task_arg);
     }
     DEBUG_INFO("[INFO] worker -%10d - finish.\n", (int)pthread_self());
-    return NULL;
+    return;
 }
 
 static void workerthread_init(workerthread_t *workerthread) {

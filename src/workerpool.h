@@ -42,10 +42,14 @@
 #endif
 
 #define MAX_WORKERPOOL_SIZE     0xff
-#define POOL_STATUS_INVALID     0x0
-#define POOL_STATUS_PAUSE       0x1
-#define POOL_STATUS_RUNNING     0x2
-#define POOL_STATUS_STOP        0x3
+
+/* pool status */
+typedef enum pool_status_e {
+    INVALID,
+    PAUSE,
+    RUNNING,
+    STOP
+} pool_status_t;
 
 /* struct and types */
 
@@ -56,7 +60,7 @@ typedef struct workerthread_s {
 typedef struct poolsafe_s {
     pthread_cond_t *worker_notify;
     pthread_mutex_t *worker_notify_mutex, *taskqueue_mutex, *pool_mutex;
-    uint pool_status;
+    pool_status_t pool_status;
 } poolsafe_t; // worker safe
 
 typedef struct workerpool_s {
@@ -77,6 +81,6 @@ int  workerpool_stop(workerpool_t * __restrict);
 int  workerpool_task_put(workerpool_t * __restrict, void (*)(void*), void*);
 uint workerpool_poolsize(workerpool_t * __restrict);
 int workerpool_poolsize_update(workerpool_t * __restrict, uint);
-uint workerpool_status(workerpool_t * __restrict);
+pool_status_t workerpool_status(workerpool_t * __restrict);
 
 #endif /* WORKERPOOL_H_ */

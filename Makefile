@@ -22,16 +22,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+NAME = workerpool
+VERSION = 0.1.0
+BUILDNAME = lib$(NAME)
 CFLAGS = -Wall -Isrc -O -W
 LDLIBS = -pthread
 CC = clang
 AR = ar
-OS_TYPE = $(shell uname)
-NAME = workerpool
-SRC_DIR = src
-TEST_DIR = test
-BUILD_DIR = build
-BUILD_NAME = lib$(NAME)
+PLATFORM = $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
+SRCDIR = src
+TESTDIR = test
+BUILDDIR = build
 
 ifdef DEBUG
 CFLAGS += -g
@@ -39,70 +40,71 @@ LDFLAGS += -g
 endif
 
 # setup file name
-BUILD_STATIC = $(BUILD_NAME).a
-ifeq ($(OS_TYPE), Darwin)
-BUILD_SHARED = $(BUILD_NAME).dylib
+ANAME = $(BUILDNAME).a
+ifeq ($(PLATFORM), darwin)
+SONAME = $(BUILDNAME).$(VERSION).dylib
+SOEXT = dylib
 else
-BUILD_SHARED = $(BUILD_NAME).so
+SONAME = $(BUILDNAME).so.$(VERSION)
+SOEXT = so
 endif
 
+INSTALL := install
+UNINSTALL := rm
+LINK := ln -s
+PREFIX := /usr/local
+
 # compile and build
-all: workerpool.o taskqueue.o static shared test
+all: library
 
 # make build output dir
 buildpath:
-	$(shell mkdir -p $(BUILD_DIR))
+	mkdir -p $(BUILDDIR)
 
 # compile worker pool
 workerpool.o: buildpath
-	$(CC) $(CFLAGS) -c -fpic $(SRC_DIR)/workerpool.c -o $(BUILD_DIR)/workerpool.o
+	$(CC) $(CFLAGS) -c -fpic $(SRCDIR)/workerpool.c -o $(BUILDDIR)/workerpool.o
 
 # compile task queue
 taskqueue.o: buildpath
-	$(CC) $(CFLAGS) -c -fpic $(SRC_DIR)/taskqueue.c -o $(BUILD_DIR)/taskqueue.o
-
-# build static lib
-static: workerpool.o taskqueue.o
-	$(AR) -r $(BUILD_DIR)/$(BUILD_STATIC) $(BUILD_DIR)/workerpool.o $(BUILD_DIR)/taskqueue.o
-
-# build shared lib
-shared: workerpool.o taskqueue.o
-	$(CC) $(CFLAGS) $(LDLIBS) -shared $(BUILD_DIR)/workerpool.o $(BUILD_DIR)/taskqueue.o -o $(BUILD_DIR)/$(BUILD_SHARED)
+	$(CC) $(CFLAGS) -c -fpic $(SRCDIR)/taskqueue.c -o $(BUILDDIR)/taskqueue.o
 
 # compile test
 test.o: buildpath
-	$(CC) $(CFLAGS) -c -fpic $(TEST_DIR)/test.c -o $(BUILD_DIR)/test.o
+	$(CC) $(CFLAGS) -c -fpic $(TESTDIR)/test.c -o $(BUILDDIR)/test.o
+
+# build static library
+static: workerpool.o taskqueue.o
+	$(AR) -r $(BUILDDIR)/$(ANAME) $(BUILDDIR)/workerpool.o $(BUILDDIR)/taskqueue.o
+
+# build shared library
+shared: workerpool.o taskqueue.o
+	$(CC) $(CFLAGS) $(LDLIBS) -shared $(BUILDDIR)/workerpool.o $(BUILDDIR)/taskqueue.o -o $(BUILDDIR)/$(SONAME)
+
+# build both shared and static library
+library: static shared
 
 # test
 test: test.o workerpool.o taskqueue.o
-	$(CC) $(CFLAGS) $(LDLIBS) $(BUILD_DIR)/test.o $(BUILD_DIR)/workerpool.o $(BUILD_DIR)/taskqueue.o -o $(BUILD_DIR)/test
-	$(BUILD_DIR)/test
+	$(CC) $(CFLAGS) $(LDLIBS) $(BUILDDIR)/test.o $(BUILDDIR)/workerpool.o $(BUILDDIR)/taskqueue.o -o $(BUILDDIR)/test
+	$(BUILDDIR)/test
 
 # install to system
-install: all
-	$(shell mkdir -p /opt/$(NAME))
-	$(shell mkdir -p /opt/$(NAME)/lib)
-	$(shell mkdir -p /opt/$(NAME)/include)
-	$(shell cp $(BUILD_DIR)/$(BUILD_SHARED) /opt/$(NAME)/lib/)
-	$(shell cp $(BUILD_DIR)/$(BUILD_STATIC) /opt/$(NAME)/lib/)
-	$(shell cp $(SRC_DIR)/workerpool.h /opt/$(NAME)/include/)
-	$(shell cp $(SRC_DIR)/taskqueue.h  /opt/$(NAME)/include/)
-	$(shell ln -s /opt/$(NAME)/lib/$(BUILD_SHARED) /usr/local/lib/)
-	$(shell ln -s /opt/$(NAME)/lib/$(BUILD_STATIC) /usr/local/lib/)
-	$(shell ln -s /opt/$(NAME)/include/workerpool.h /usr/local/include/)
-	$(shell ln -s /opt/$(NAME)/include/taskqueue.h  /usr/local/include/)
-	@echo "$(NAME): install done."
+install: library
+	$(INSTALL) $(SRCDIR)/workerpool.h $(PREFIX)/include/workerpool.h
+	$(INSTALL) $(SRCDIR)/taskqueue.h  $(PREFIX)/include/taskqueue.h
+	$(INSTALL) $(BUILDDIR)/$(SONAME)  $(PREFIX)/lib/$(SONAME)
+	$(INSTALL) $(BUILDDIR)/$(ANAME)   $(PREFIX)/lib/$(ANAME)
+	$(LINK) $(PREFIX)/lib/$(SONAME)   $(PREFIX)/lib/$(BUILDNAME).$(SOEXT)
 
 # uninstall from system
 uninstall:
-	$(shell rm -rf /usr/local/lib/$(BUILD_SHARED))
-	$(shell rm -rf /usr/local/lib/$(BUILD_STATIC))
-	$(shell rm -rf /usr/local/include/workerpool.h)
-	$(shell rm -rf /usr/local/include/taskqueue.h)
-	$(shell rm -rf /opt/$(NAME))
-	@echo "$(NAME): uninstall done."
+	$(UNINSTALL) $(PREFIX)/lib/$(BUILDNAME).$(SOEXT)
+	$(UNINSTALL) $(PREFIX)/lib/$(SONAME)
+	$(UNINSTALL) $(PREFIX)/lib/$(ANAME)
+	$(UNINSTALL) $(PREFIX)/include/workerpool.h
+	$(UNINSTALL) $(PREFIX)/include/taskqueue.h
 
 # clean up all build output files.
 clean:
-	$(shell rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/*.dylib $(BUILD_DIR)/*.so $(BUILD_DIR)/*.a $(BUILD_DIR)/test)
-	@echo "$(NAME): clean done."
+	rm -rf $(BUILDDIR)/*.o $(BUILDDIR)/$(ANAME) $(BUILDDIR)/$(SONAME) $(BUILDDIR)/test 
