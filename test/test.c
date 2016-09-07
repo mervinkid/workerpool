@@ -41,7 +41,7 @@ int main() {
     
     assert(workerpool_status(pool) == INVALID);
     
-    workerpool_init(pool, WORKER);
+    workerpool_init(pool, WORKER, 1);
     
     assert(workerpool_poolsize(pool) == WORKER);
     assert(workerpool_status(pool) == STOP);
@@ -50,11 +50,13 @@ int main() {
     
     assert(workerpool_status(pool) == RUNNING);
     
+    printf("Put tasks.\n");
     for (int i = 0; i < 20; i++) {
         int *arg = (int*)malloc(sizeof(int));
         *arg = i;
         workerpool_task_put(pool, task_func, (void*)arg);
     }
+    printf("Put complete.\n");
     
     workerpool_stop(pool);
     

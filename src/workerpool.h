@@ -58,8 +58,8 @@ typedef struct workerthread_s {
 } workerthread_t; // worker thread
 
 typedef struct poolsafe_s {
-    pthread_cond_t *worker_notify;
-    pthread_mutex_t *worker_notify_mutex, *taskqueue_mutex, *pool_mutex;
+    pthread_cond_t *worker_notify, *queue_notify;
+    pthread_mutex_t *worker_notify_mutex, *queue_notify_mutex, *taskqueue_mutex, *pool_mutex;
     pool_status_t pool_status;
 } poolsafe_t; // worker safe
 
@@ -67,13 +67,14 @@ typedef struct workerpool_s {
     taskqueue_t *taskqueue;
     poolsafe_t poolsafe;
     uint poolsize;                      /* pool size */
+    uint buffersize;
     workerthread_t *worker_threads;     /* workers */
 } workerpool_t; // worker pool
 
 /* workerpool functions */
 
 workerpool_t* workerpool_new();
-void workerpool_init(workerpool_t * __restrict, uint);
+void workerpool_init(workerpool_t * __restrict, uint, uint);
 void workerpool_destroy(workerpool_t * __restrict);
 int  workerpool_start(workerpool_t * __restrict);
 int  workerpool_pause(workerpool_t * __restrict);
