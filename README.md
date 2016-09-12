@@ -1,5 +1,6 @@
 # workerpool
 
+![Release](https://img.shields.io/badge/release-0.2.0-orange.svg?style=flat)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat&maxAge=2592000)
 
@@ -74,11 +75,12 @@ This is the major structure for `workerpool`. Do not modify any data directly.
 
     >Return an allocated pointer of type `workerpool_t`. 
 
-- `void workerpool_init(workerpool_t * __restrict, uint);`
+- `void workerpool_init(workerpool_t * __restrict, uint, uint);`
 
     >Init data for a allocated pointer of type `workerpool_t`.<br>
     >The first argument is the pointer of type `workerpool_t` which will be inited.<br>
-    >The second argument is the number of worker threads.
+    >The second argument is the number of worker threads.<br>
+    >The third argument is size of buffer area. If the buffer area is full, function call of `workerpool_task_put` will be blocked.
 
 - `void workerpool_destroy(workerpool_t * __restrict);`
 
