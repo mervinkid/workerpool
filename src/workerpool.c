@@ -113,7 +113,9 @@ void workerpool_destroy(workerpool_t *pool) {
     pthread_mutex_destroy(pool->poolsafe.pool_mutex);
     pthread_mutex_destroy(pool->poolsafe.worker_notify_mutex);
     pthread_mutex_destroy(pool->poolsafe.taskqueue_mutex);
+    pthread_mutex_destroy(pool->poolsafe.queue_notify_mutex);
     pthread_cond_destroy(pool->poolsafe.worker_notify);
+    pthread_cond_destroy(pool->poolsafe.queue_notify);
     
     // Free memory.
     free(pool->worker_threads);

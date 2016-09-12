@@ -30,6 +30,7 @@
 #include "workerpool.h"
 
 #define WORKER  4
+#define BUFFER_SIZE 4
 
 static void task_func(void *);
 
@@ -41,7 +42,7 @@ int main() {
     
     assert(workerpool_status(pool) == INVALID);
     
-    workerpool_init(pool, WORKER, 1);
+    workerpool_init(pool, WORKER, BUFFER_SIZE);
     
     assert(workerpool_poolsize(pool) == WORKER);
     assert(workerpool_status(pool) == STOP);

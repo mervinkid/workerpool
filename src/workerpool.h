@@ -43,18 +43,21 @@
 
 #define MAX_WORKERPOOL_SIZE     0xff
 
-/* pool status */
+/* enums */
+#pragma mark enums
+
 typedef enum pool_status_e {
     INVALID,
     PAUSE,
     RUNNING,
     STOP
-} pool_status_t;
+} pool_status_t;    // pool status
 
 /* struct and types */
+#pragma mark struct and types
 
 typedef struct workerthread_s {
-    pthread_t *thread;
+    pthread_t *thread;  // pointer of POSIX thread
 } workerthread_t; // worker thread
 
 typedef struct poolsafe_s {
@@ -67,11 +70,12 @@ typedef struct workerpool_s {
     taskqueue_t *taskqueue;
     poolsafe_t poolsafe;
     uint poolsize;                      /* pool size */
-    uint buffersize;
+    uint buffersize;                    /* buffer size */
     workerthread_t *worker_threads;     /* workers */
 } workerpool_t; // worker pool
 
 /* workerpool functions */
+#pragma mark functions
 
 workerpool_t* workerpool_new();
 void workerpool_init(workerpool_t * __restrict, uint, uint);
