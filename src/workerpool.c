@@ -34,7 +34,7 @@ workerpool_t* workerpool_new() {
     return (workerpool_t*)malloc(sizeof(workerpool_t));
 }
 
-void workerpool_init(workerpool_t * pool, uint poolsize) {
+void workerpool_init(workerpool_t * pool, uint poolsize, uint buffersize) {
     
     // Init pool only when pool has not been inited.
     if (workerpool_status(pool) != INVALID) {
@@ -59,9 +59,9 @@ void workerpool_init(workerpool_t * pool, uint poolsize) {
     
     // Init worker condition mutex lock.
     // This lock used for make worker condition safe.
-    pthread_mutex_t *worker_cond_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
-    pthread_mutex_init(worker_cond_mutex, NULL);
-    pool->poolsafe.worker_notify_mutex = worker_cond_mutex;
+    pthread_mutex_t *worker_notify_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(worker_notify_mutex, NULL);
+    pool->poolsafe.worker_notify_mutex = worker_notify_mutex;
     
     // Init worker condition.
     // This condition used for make worker thread manageable.
@@ -69,12 +69,30 @@ void workerpool_init(workerpool_t * pool, uint poolsize) {
     pthread_cond_init(worker_notify, NULL);
     pool->poolsafe.worker_notify = worker_notify;
     
+    // Init queue condition mutex lock
+    // This lock used for make queue condition safe.
+    pthread_mutex_t *queue_notify_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(queue_notify_mutex, NULL);
+    pool->poolsafe.queue_notify_mutex = queue_notify_mutex;
+    
+    // Init queue condition
+    // This condition used for make queue access manageable.
+    pthread_cond_t *queue_notify = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
+    pthread_cond_init(queue_notify, NULL);
+    pool->poolsafe.queue_notify = queue_notify;
+    
     // Update pool status.
     pool->poolsafe.pool_status = STOP;
     
     // Init task queue.
     pool->taskqueue = taskqueue_new();
     taskqueue_init(pool->taskqueue);
+    
+    // Setup buffer size
+    if (buffersize == 0) {
+        buffersize = 1;
+    }
+    pool->buffersize = buffersize;
     
     pool->poolsize = poolsize;
     
@@ -95,7 +113,9 @@ void workerpool_destroy(workerpool_t *pool) {
     pthread_mutex_destroy(pool->poolsafe.pool_mutex);
     pthread_mutex_destroy(pool->poolsafe.worker_notify_mutex);
     pthread_mutex_destroy(pool->poolsafe.taskqueue_mutex);
+    pthread_mutex_destroy(pool->poolsafe.queue_notify_mutex);
     pthread_cond_destroy(pool->poolsafe.worker_notify);
+    pthread_cond_destroy(pool->poolsafe.queue_notify);
     
     // Free memory.
     free(pool->worker_threads);
@@ -216,6 +236,13 @@ int workerpool_task_put(workerpool_t *pool, void (*taskfunc)(void*), void *arg) 
     if (workerpool_status(pool) == INVALID || taskfunc == NULL) {
         return -1;
     }
+    
+    pthread_mutex_lock(pool->poolsafe.queue_notify_mutex);
+    if ((uint)pool->taskqueue->size >= pool->buffersize) {
+        pthread_cond_wait(pool->poolsafe.queue_notify, pool->poolsafe.queue_notify_mutex);
+    }
+    pthread_mutex_unlock(pool->poolsafe.queue_notify_mutex);
+    
     if (taskqueue_put(pool->taskqueue, taskfunc, arg) == -1) {
         return -1;
     }
@@ -326,6 +353,12 @@ static void workerpool_workerthread_func(void *ptr) {
             DEBUG_INFO("[INFO] worker -%10d - weakup.\n", (int)pthread_self());
             
             continue;
+        } else {
+            pthread_mutex_lock(pool->poolsafe.queue_notify_mutex);
+            if ((uint)pool->taskqueue->size < pool->buffersize) {
+                pthread_cond_signal(pool->poolsafe.queue_notify);
+            }
+            pthread_mutex_unlock(pool->poolsafe.queue_notify_mutex);
         }
         void (*task_func)(void*) = task.func;
         void *task_arg = task.args;

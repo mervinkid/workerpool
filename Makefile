@@ -23,7 +23,7 @@
 # SOFTWARE.
 
 NAME = workerpool
-VERSION = 0.1.0
+VERSION = 0.2.0
 BUILDNAME = lib$(NAME)
 CFLAGS = -Wall -Isrc -O -W
 LDLIBS = -pthread
