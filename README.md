@@ -163,7 +163,7 @@ static void *sample_task(void *arg) {
 
 ## Authors
 
-[@Mervin](https://github.com/mofei2816) 
+[@Mervin](https://github.com/mervinkid) 
 
 ## License
 
